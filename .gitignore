@@ -1,0 +1,5 @@
+# arquivos baixados da CVM (centenas de MB) — recriados pelo atualizar_dados.py
+cache/
+# versão gerada para o Artifact do Claude
+artifact/
+__pycache__/

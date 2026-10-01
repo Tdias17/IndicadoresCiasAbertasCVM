@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indicadores CVM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Oswald:wght@500;600&display=swap">
+<style>
+  /* Rubro-negro: faixa listrada no topo, vermelho nas séries, preto como contraponto.
+     Oswald (condensada, de placar) nos títulos e números; Barlow no texto. */
+  :root {
+    color-scheme: light;
+    --rubro: #c8102e;
+    --preto: #0d0c0c;
+    --bg: #f4f1f1;
+    --surface: #ffffff;
+    --border: #e4dcdd;
+    --grid: #eee8e9;
+    --text: #141112;
+    --text-2: #5a4f51;
+    --text-3: #8c8183;
+    --series: #c8102e;
+    --series-hover: #930a20;
+    --series-2: #141112;
+    --sobe: #1e8e3e;
+    --cai: #c8102e;
+    --accent-bg: #fbe7ea;
+    --fonte-display: "Oswald", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --fonte-texto: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --rubro: #e0233f;
+      --bg: #0b0a0a;
+      --surface: #161314;
+      --border: #2e2527;
+      --grid: #241d1f;
+      --text: #ffffff;
+      --text-2: #d2c6c8;
+      --text-3: #91868a;
+      --series: #e0233f;
+      --series-hover: #ff5d70;
+      --series-2: #f3eeee;
+      --sobe: #4cc06a;
+      --cai: #ff5d70;
+      --accent-bg: #3b111a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --rubro: #e0233f; --bg: #0b0a0a; --surface: #161314; --border: #2e2527; --grid: #241d1f;
+    --text: #ffffff; --text-2: #d2c6c8; --text-3: #91868a;
+    --series: #e0233f; --series-hover: #ff5d70; --series-2: #f3eeee;
+    --sobe: #4cc06a; --cai: #ff5d70; --accent-bg: #3b111a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 var(--fonte-texto);
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 0 16px 48px; }
+
+  /* faixa do topo: listras horizontais vermelhas e pretas */
+  .faixa {
+    margin: 0 -16px 18px; padding: 22px 16px 20px;
+    background: repeating-linear-gradient(180deg, var(--rubro) 0 14px, var(--preto) 14px 28px);
+  }
+  .faixa .placa {
+    display: inline-block; background: var(--preto); color: #fff;
+    padding: 10px 16px 12px; border-left: 6px solid var(--rubro);
+  }
+  h1 {
+    font-family: var(--fonte-display); font-weight: 600; text-transform: uppercase;
+    font-size: 26px; letter-spacing: .04em; line-height: 1.05; margin: 0; text-wrap: balance;
+  }
+  .faixa .sub { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #f1c9cf; margin-top: 4px; }
+
+  .controles {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: end;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .campo { display: flex; flex-direction: column; gap: 4px; }
+  .campo label { font-size: 12px; color: var(--text-2); }
+  input, select, button {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px;
+  }
+  input#ticker { width: 130px; text-transform: uppercase; font-weight: 600; }
+  select#indicador { min-width: 230px; }
+  .segmentado { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .segmentado button { border: 0; border-radius: 0; background: var(--bg); color: var(--text-2); cursor: pointer; }
+  .segmentado button.ativo { background: var(--rubro); color: #fff; font-weight: 600; }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--rubro); outline-offset: 1px; }
+
+  .cartao {
+    margin-top: 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px;
+  }
+  .cab h2 { margin: 0; font-family: var(--fonte-display); font-weight: 600; font-size: 22px; letter-spacing: .02em; text-transform: uppercase; }
+  .cab .meta { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+  .cab .titulo-ind { margin-top: 14px; font-weight: 600; }
+  .cab .unid { color: var(--text-3); font-weight: 400; }
+  .nota { margin-top: 6px; font-size: 12px; color: var(--text-2); }
+  .erro { color: var(--text-2); padding: 24px 0; }
+
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+  .kpi { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .kpi .rot { font-size: 11px; color: var(--text-2); letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+  .kpi .val { font-family: var(--fonte-display); font-size: 26px; font-weight: 500; margin-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .kpi .det { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi:last-child { grid-column: 1 / -1; } }
+  @media (max-width: 600px) { .kpi .val { font-size: 22px; } h1 { font-size: 22px; } }
+  #grafico { position: relative; margin-top: 8px; }
+  #grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap;
+    transform: translate(-50%, -100%); display: none;
+  }
+  .tooltip b { font-size: 13px; }
+  .tooltip .sub { color: var(--text-2); }
+
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+  th { font-size: 11px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; border-bottom: 2px solid var(--rubro); }
+  th:first-child, td:first-child { text-align: left; }
+  .tabela-wrap { overflow-x: auto; }
+  .var { color: var(--text-2); }
+  tr.sep td { border-top: 2px solid var(--border); }
+  .botao { cursor: pointer; font-weight: 600; background: var(--preto); color: #fff; border-color: var(--preto); }
+  .botao:hover { background: var(--rubro); border-color: var(--rubro); }
+  .controles .campo:last-child { margin-left: auto; }
+
+  .cot-cab { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+  .cot-tit { font-weight: 600; }
+  .cot-preco { font-family: var(--fonte-display); font-size: 30px; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .cot-preco .delta { font-size: 15px; font-weight: 600; margin-left: 8px; }
+  .delta.sobe { color: var(--sobe); }
+  .delta.cai { color: var(--cai); }
+  .cot-per { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .periodos { flex-wrap: wrap; }
+  .periodos button { padding: 5px 9px; font-size: 13px; }
+  @media (max-width: 600px) { .periodos button { padding: 5px 7px; font-size: 12px; } }
+  #cotGraf { margin-top: 10px; }
+  #cotGraf svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+  footer { margin-top: 14px; font-size: 12px; color: var(--text-3); }
+  footer code { font-size: 11px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="faixa">
+    <div class="placa">
+      <h1>Indicadores Rubro-Negros</h1>
+      <div class="sub">Companhias da B3 · CVM consolidado</div>
+    </div>
+  </header>
+
+  <div class="controles">
+    <div class="campo">
+      <label for="ticker">Ticker ou nome</label>
+      <input id="ticker" list="lista-tickers" placeholder="PETR4" autocomplete="off">
+      <datalist id="lista-tickers"></datalist>
+    </div>
+    <div class="campo">
+      <label for="freq">Periodicidade</label>
+      <select id="freq">
+        <option value="anual">Anual + LTM</option>
+        <option value="tri">Trimestral</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="indicador">Indicador</label>
+      <select id="indicador"></select>
+    </div>
+    <div class="campo">
+      <label for="margem">Margem</label>
+      <select id="margem"></select>
+    </div>
+    <div class="campo">
+      <label for="acao">Ação</label>
+      <select id="acao">
+        <option value="">Nenhuma</option>
+        <option value="preco">Variação do preço</option>
+        <option value="total">Retorno total</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="unidade">Unidade</label>
+      <select id="unidade">
+        <option value="mil">R$ mil</option>
+        <option value="mi">R$ milhões</option>
+        <option value="bi">R$ bilhões</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="de">De</label>
+      <select id="de"></select>
+    </div>
+    <div class="campo">
+      <label for="ate">Até</label>
+      <select id="ate"></select>
+    </div>
+    <div class="campo">
+      <label>Visualização</label>
+      <div class="segmentado" id="modo">
+        <button data-modo="grafico" class="ativo">Gráfico</button>
+        <button data-modo="tabela">Tabela</button>
+      </div>
+    </div>
+    <div class="campo">
+      <button id="exportar" class="botao" title="Baixa a tabela do período selecionado em .xlsx">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="cartao" id="resultado"></div>
+  <div class="cartao" id="cotacao" hidden></div>
+
+  <footer id="rodape"></footer>
+</main>
+
+<script src="dados.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const INDICADORES = {
+  receita:           "Receita líquida",
+  lucro_bruto:       "Lucro bruto",
+  lucro_operacional: "Lucro operacional (EBIT)",
+  lucro_liquido:     "Lucro líquido consolidado",
+  lucro_controladores: "Lucro atribuído aos controladores",
+  fco:               "Fluxo de caixa operacional",
+  fci:               "Fluxo de caixa de investimentos",
+  dividendos:        "Dividendos + JCP",
+};
+const TODOS = "__todos";
+// margem = numerador / denominador (receita líquida, salvo indicação)
+const MARGENS = {
+  m_bruta:  { nome: "Margem bruta",              num: "lucro_bruto" },
+  m_ebit:   { nome: "Margem EBIT",               num: "lucro_operacional" },
+  m_liq:    { nome: "Margem líquida",            num: "lucro_liquido" },
+  m_fco:    { nome: "FCO / Receita",             num: "fco" },
+  m_payout: { nome: "Payout (Div. + JCP / Lucro)", num: "dividendos", den: "lucro_liquido", rotulo: "% do lucro líquido" },
+  roe:      { nome: "ROE", campo: "_roe", rotulo: "lucro dos controladores em 12 meses ÷ PL médio" },
+};
+// variação anual da ação (Yahoo Finance), fechamento do ano anterior -> fechamento do ano
+const ACOES = {
+  preco: { nome: "Variação do preço", idx: 0 },
+  total: { nome: "Retorno total",     idx: 1, nota: "com dividendos e JCP reinvestidos" },
+};
+// ticker usado nas cotações: o digitado (se for desta empresa), senão o primeiro com cotação
+function tickerCotacao(emp) {
+  const cot = DADOS.cotacoes || {};
+  if (estado.ticker && DADOS.tickers[estado.ticker] === estado.cvm && cot[estado.ticker]) return estado.ticker;
+  return emp.tickers.find(t => cot[t]) || null;
+}
+// chaveCot: "2025" (ano) ou "2025T2" (trimestre)
+function retorno(emp, chaveCot, chave) {
+  const t = tickerCotacao(emp);
+  const v = t && chaveCot && DADOS.cotacoes[t][chaveCot];
+  return v ? v[ACOES[chave].idx] : null;
+}
+// d: valores de um período (ano, trimestre ou LTM)
+function margem(d, chave) {
+  if (!d || !MARGENS[chave]) return null;
+  const m = MARGENS[chave];
+  if (m.campo) return d[m.campo] ?? null;
+  const n = d[m.num], r = d[m.den || "receita"];
+  if (n == null || !r) return null;
+  if (m.den && r < 0) return null; // payout com prejuízo não faz sentido
+  return n / r * 100;
+}
+
+// ---------- períodos: anual (+ LTM) ou trimestral ----------
+const idxTri = ch => { const [a, q] = ch.split("T"); return +a * 4 + (+q - 1); };
+const chTri = i => `${Math.floor(i / 4)}T${i % 4 + 1}`;
+const rotTri = ch => { const [a, q] = ch.split("T"); return `${q}T${a.slice(2)}`; };
+
+// soma dos 4 trimestres terminados em "ref" (ex.: "2026T2")
+function somaLtm(emp, ref) {
+  const i = idxTri(ref);
+  const qs = [0, 1, 2, 3].map(d => emp.tri && emp.tri[chTri(i - d)]);
+  if (qs.some(q => !q)) return null;
+  const out = {};
+  for (const k of Object.keys(INDICADORES)) if (qs.every(q => q[k] != null)) out[k] = qs.reduce((s, q) => s + q[k], 0);
+  return out;
+}
+
+// ROE = lucro dos controladores (12 meses) ÷ PL médio dos controladores (início e fim)
+function plMedio(fim, ini) { return fim == null ? null : ini != null ? (fim + ini) / 2 : fim; }
+function roeAnual(emp, ano) {
+  const l = emp.anos[ano]?.lucro_controladores;
+  const pl = plMedio(emp.pl?.anos?.[ano], emp.pl?.anos?.[ano - 1]);
+  return l != null && pl > 0 ? l / pl * 100 : null;
+}
+function roeTri(emp, ch) {
+  const l = somaLtm(emp, ch)?.lucro_controladores;
+  const pl = plMedio(emp.pl?.tri?.[ch], emp.pl?.tri?.[chTri(idxTri(ch) - 4)]);
+  return l != null && pl > 0 ? l / pl * 100 : null;
+}
+const comRoe = (d, roe) => d ? { ...d, _roe: roe } : roe != null ? { _roe: roe } : null;
+
+// Cada período: rot (rótulo), d (valores), comp (mesmo período do ano anterior), cot (chave da cotação)
+function listaPeriodos(emp) {
+  const lista = [];
+  if (estado.freq === "tri") {
+    const chaves = Object.keys(emp.tri || {});
+    if (!chaves.length) return lista;
+    const ultimo = Math.max(...chaves.map(idxTri));
+    for (let i = estado.de * 4; i <= Math.min(estado.ate * 4 + 3, ultimo); i++) {
+      const ch = chTri(i);
+      lista.push({ rot: rotTri(ch), d: comRoe(emp.tri[ch], roeTri(emp, ch)), comp: emp.tri[chTri(i - 4)] || null,
+        compRot: rotTri(chTri(i - 4)), cot: ch, q: i % 4 + 1, ano: Math.floor(i / 4) });
+    }
+    return lista;
+  }
+  const anos = Object.keys(emp.anos).map(Number);
+  const maxAno = anos.length ? Math.max(...anos) : estado.ate;
+  for (let a = estado.de; a <= Math.min(estado.ate, maxAno); a++) {
+    lista.push({ rot: String(a), d: comRoe(emp.anos[a], roeAnual(emp, a)), comp: emp.anos[a - 1] || null,
+      compRot: String(a - 1), cot: String(a), ano: a });
+  }
+  // LTM só quando o período chega ao fim da série anual
+  if (emp.ltm && estado.ate >= maxAno) {
+    const ref = emp.ltm.ref, refAnt = chTri(idxTri(ref) - 4);
+    lista.push({ rot: `LTM ${rotTri(ref)}`, d: comRoe(emp.ltm.v, roeTri(emp, ref)), comp: somaLtm(emp, refAnt),
+      compRot: `LTM ${rotTri(refAnt)}`, cot: null, ltm: true, fim: emp.ltm.fim });
+  }
+  return lista;
+}
+
+const $ = id => document.getElementById(id);
+const estado = { cvm: null, ticker: null, freq: "anual", indicador: "receita", margem: "", acao: "", periodoCot: "ind", unidade: "mi", modo: "grafico", de: null, ate: null };
+
+function guardar() {
+  try { localStorage.setItem("indicadores-cvm", JSON.stringify(estado)); } catch (e) {}
+}
+function carregarSalvo() {
+  try { return JSON.parse(localStorage.getItem("indicadores-cvm")) || {}; } catch (e) { return {}; }
+}
+
+// ---------- formatação (valores chegam em R$ mil; exibidos na unidade escolhida) ----------
+const UNIDADES = {
+  mil: { nome: "mil",     curto: "mil", div: 1 },
+  mi:  { nome: "milhões", curto: "mi",  div: 1e3 },
+  bi:  { nome: "bilhões", curto: "bi",  div: 1e6 },
+};
+const U = () => UNIDADES[estado.unidade] || UNIDADES.mi;
+const fmt0 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+const fmt1 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmt2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtEixo = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+function naUnidade(vMil) { return vMil / U().div; }
+function fmtNum(m) {
+  const a = Math.abs(m);
+  return a >= 100 ? fmt0.format(m) : a >= 1 ? fmt1.format(m) : fmt2.format(m);
+}
+function fmtValor(vMil) { return vMil == null ? "–" : fmtNum(naUnidade(vMil)); }
+function variacao(atual, anterior) {
+  if (atual == null || anterior == null || anterior === 0) return null;
+  return (atual - anterior) / Math.abs(anterior) * 100;
+}
+function fmtVar(p) {
+  if (p == null || !isFinite(p)) return "–";
+  return (p > 0 ? "+" : "") + fmt1.format(p) + "%";
+}
+
+// ---------- busca de empresa ----------
+function resolverEmpresa(texto) {
+  const t = texto.trim().toUpperCase();
+  if (!t) return null;
+  if (DADOS.tickers[t]) return DADOS.tickers[t];
+  // aceita "PETR4 — PETROBRAS" vindo do datalist
+  const primeiro = t.split(/\s+/)[0];
+  if (DADOS.tickers[primeiro]) return DADOS.tickers[primeiro];
+  // raiz do ticker (ex.: "PETR")
+  const raiz = Object.keys(DADOS.tickers).find(k => k.startsWith(t) && /^[A-Z0-9]{4}\d/.test(k));
+  if (raiz && t.length >= 4) return DADOS.tickers[raiz];
+  // nome
+  const achou = Object.entries(DADOS.empresas).find(([, e]) => e.nome.toUpperCase().includes(t));
+  return achou ? achou[0] : null;
+}
+
+function montarDatalist() {
+  const opts = Object.entries(DADOS.tickers)
+    .map(([t, cvm]) => `<option value="${t}">${DADOS.empresas[cvm].nome}</option>`);
+  $("lista-tickers").innerHTML = opts.join("");
+}
+
+function montarIndicadores() {
+  const ops = Object.entries(INDICADORES).map(([k, v]) => `<option value="${k}">${v}</option>`);
+  if (estado.modo === "tabela") ops.push(`<option value="${TODOS}">Todos os indicadores</option>`);
+  $("indicador").innerHTML = ops.join("");
+  if (estado.indicador === TODOS && estado.modo !== "tabela") estado.indicador = "receita";
+  $("indicador").value = estado.indicador;
+}
+
+function montarAnos() {
+  const emp = DADOS.empresas[estado.cvm];
+  const anos = emp ? [...new Set([...Object.keys(emp.anos), ...Object.keys(emp.tri || {}).map(c => c.slice(0, 4))])]
+    .map(Number).sort((a, b) => a - b) : [];
+  const ops = anos.map(a => `<option value="${a}">${a}</option>`).join("");
+  $("de").innerHTML = ops; $("ate").innerHTML = ops;
+  if (!anos.length) return;
+  const min = anos[0], max = anos[anos.length - 1];
+  if (estado.ate == null || estado.ate > max || estado.ate < min) estado.ate = max;
+  if (estado.de == null || estado.de < min || estado.de > estado.ate) estado.de = Math.max(min, estado.ate - 9);
+  $("de").value = estado.de; $("ate").value = estado.ate;
+}
+
+// ---------- preço, valor de mercado, P/L e dividend yield ----------
+// valores grandes em R$ mil -> "R$ 632,1 bi" / "R$ 850 mi"
+function fmtGrande(vMil) {
+  const a = Math.abs(vMil);
+  if (a >= 1e6) return `R$ ${fmtNum(vMil / 1e6)} bi`;
+  if (a >= 1e3) return `R$ ${fmtNum(vMil / 1e3)} mi`;
+  return `R$ ${fmtNum(vMil)} mil`;
+}
+const fmtDataIso = iso => iso ? iso.split("-").reverse().join("/") : "";
+
+function blocoMercado(emp) {
+  const tk = tickerCotacao(emp);
+  const cot = tk ? DADOS.cotacoes[tk] : null;
+  const mer = emp.mercado;
+  if (!cot || !cot._p) return "";
+
+  // lucro dos últimos 12 meses (LTM) ou, sem ITR recente, do último ano
+  const anos = Object.keys(emp.anos).map(Number);
+  const base = emp.ltm ? { v: emp.ltm.v, rot: `LTM ${rotTri(emp.ltm.ref)}` }
+    : anos.length ? { v: emp.anos[Math.max(...anos)], rot: String(Math.max(...anos)) } : null;
+  const lucro = base && (base.v.lucro_controladores ?? base.v.lucro_liquido);
+
+  let pl = "–", plDet = "sem valor de mercado";
+  if (mer && lucro != null) {
+    if (lucro > 0) { pl = fmt1.format(mer.mcap / lucro) + "x"; plDet = `lucro ${base.rot} dos controladores`; }
+    else plDet = `prejuízo em ${base.rot}`;
+  }
+  const dy = cot._div12 != null ? cot._div12 / cot._p * 100 : null;
+  const roe = emp.ltm ? roeTri(emp, emp.ltm.ref) : anos.length ? roeAnual(emp, Math.max(...anos)) : null;
+  const tile = (rot, val, det) =>
+    `<div class="kpi"><div class="rot">${rot}</div><div class="val">${val}</div><div class="det">${det}</div></div>`;
+
+  return `<div class="kpis">
+    ${tile(`Preço ${tk}`, `R$ ${fmt2.format(cot._p)}`, `fechamento de ${fmtDataIso(cot._d)}`)}
+    ${tile("Valor de mercado", mer ? fmtGrande(mer.mcap) : "–",
+      mer ? (mer.aprox ? "aproximado: uma classe sem cotação" : "ações ON + PN, sem tesouraria") : "sem dados de ações")}
+    ${tile("P/L", pl, plDet)}
+    ${tile("Dividend yield", dy != null ? fmt1.format(dy) + "%" : "–",
+      dy ? `R$ ${fmt2.format(cot._div12)}/ação em 12 meses` : "sem proventos em 12 meses")}
+    ${tile("ROE", roe != null ? fmt1.format(roe) + "%" : "–", roe != null ? `${base.rot} · lucro ÷ PL médio` : "sem patrimônio líquido")}
+  </div>`;
+}
+
+// ---------- render ----------
+function fmtPct(p) { return p == null || !isFinite(p) ? "–" : fmt1.format(p) + "%"; }
+
+function render() {
+  guardar();
+  const caixa = $("resultado");
+  const emp = DADOS.empresas[estado.cvm];
+  if (!emp) {
+    caixa.innerHTML = `<div class="erro">${estado.cvm === null ? "Digite um ticker para começar." : "Ticker não encontrado na base."}</div>`;
+    renderCotacao(null);
+    return;
+  }
+  const per = listaPeriodos(emp);
+
+  const usaEbit = estado.indicador === "lucro_operacional" || estado.indicador === TODOS || estado.margem === "m_ebit";
+  const nota = emp.obs && emp.obs.lucro_operacional && usaEbit
+    ? `<div class="nota">Para esta empresa (instituição financeira), "lucro operacional" = ${emp.obs.lucro_operacional}.</div>` : "";
+  const notaAcao = estado.acao && !tickerCotacao(emp)
+    ? `<div class="nota">Sem cotações no Yahoo Finance para ${emp.tickers.join(", ") || "esta empresa"}.</div>` : "";
+
+  const tituloInd = estado.indicador === TODOS ? "Todos os indicadores" : INDICADORES[estado.indicador];
+  const tituloMargem = estado.margem && estado.indicador !== TODOS ? ` · ${MARGENS[estado.margem].nome}` : "";
+  caixa.innerHTML = `
+    <div class="cab">
+      <h2>${emp.nome}</h2>
+      <div class="meta">${emp.tickers.join(", ") || "sem ticker"} · ${emp.setor || "setor n/d"} · Código CVM ${estado.cvm}</div>
+      ${blocoMercado(emp)}
+      <div class="titulo-ind">${tituloInd}${tituloMargem} <span class="unid">· R$ ${U().nome} · ${estado.freq === "tri" ? "trimestral" : "anual"} · ${estado.de}–${estado.ate}</span></div>
+      ${nota}${notaAcao}
+    </div>
+    <div id="corpo"></div>`;
+
+  if (!per.length) {
+    $("corpo").innerHTML = `<div class="erro">Sem dados ${estado.freq === "tri" ? "trimestrais" : "anuais"} para este período.</div>`;
+  } else if (estado.modo === "tabela") renderTabela(emp, per);
+  else renderGrafico(emp, per);
+  renderCotacao(emp);
+}
+
+// Monta a tabela como dados "crus" (números na unidade escolhida e % como fração),
+// usada tanto para desenhar quanto para exportar ao Excel.
+function dadosTabela(emp, per) {
+  const u = U();
+  const conv = v => v == null ? null : naUnidade(v);
+  const pct = p => p == null || !isFinite(p) ? null : p / 100;
+  if (estado.indicador === TODOS) {
+    const cab = ["Indicador", ...per.map(p => p.rot)];
+    const linhas = Object.entries(INDICADORES).map(([k, nome]) =>
+      ({ tipos: ["txt", ...per.map(() => "num")], vals: [`${nome} (R$ ${u.nome})`, ...per.map(p => conv(p.d?.[k]))] }));
+    const linhasM = Object.entries(MARGENS).map(([k, m], i) =>
+      ({ sep: i === 0, tipos: ["txt", ...per.map(() => "pct")], vals: [m.nome, ...per.map(p => pct(margem(p.d, k)))] }));
+    const tk = tickerCotacao(emp);
+    const linhasA = tk ? Object.entries(ACOES).map(([k, a], i) =>
+      ({ sep: i === 0, tipos: ["txt", ...per.map(() => "var")], vals: [`${a.nome} (${tk})`, ...per.map(p => pct(retorno(emp, p.cot, k)))] })) : [];
+    return { cab, linhas: [...linhas, ...linhasM, ...linhasA] };
+  }
+  const k = estado.indicador, mk = estado.margem;
+  const cab = [estado.freq === "tri" ? "Trimestre" : "Ano", `${INDICADORES[k]} (R$ ${u.nome})`, "Var. a/a"];
+  if (mk) cab.push(MARGENS[mk].nome);
+  const ak = estado.acao, tk = ak ? tickerCotacao(emp) : null;
+  if (ak) cab.push(`${ACOES[ak].nome}${tk ? " (" + tk + ")" : ""}`);
+  const linhas = per.map(p => {
+    const v = p.d?.[k], ant = p.comp?.[k];
+    const vals = [p.rot, conv(v), pct(variacao(v, ant))];
+    const tipos = ["ano", "num", "var"];
+    if (mk) { vals.push(pct(margem(p.d, mk))); tipos.push("pct"); }
+    if (ak) { vals.push(pct(retorno(emp, p.cot, ak))); tipos.push("var"); }
+    return { tipos, vals };
+  });
+  return { cab, linhas };
+}
+
+function renderTabela(emp, per) {
+  const { cab, linhas } = dadosTabela(emp, per);
+  const cel = (t, v) => {
+    if (t === "txt" || t === "ano") return `<td>${v}</td>`;
+    if (t === "num") return `<td>${v == null ? "–" : fmtNum(v)}</td>`;
+    if (t === "var") return `<td class="var">${fmtVar(v == null ? null : v * 100)}</td>`;
+    return `<td${estado.indicador === TODOS ? ' class="var"' : ""}>${fmtPct(v == null ? null : v * 100)}</td>`;
+  };
+  const html = linhas.map(l => `<tr${l.sep ? ' class="sep"' : ""}>${l.vals.map((v, i) => cel(l.tipos[i], v)).join("")}</tr>`);
+  $("corpo").innerHTML = `<div class="tabela-wrap"><table>
+    <tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr>${html.join("")}</table></div>`;
+}
+
+function exportarExcel() {
+  const emp = DADOS.empresas[estado.cvm];
+  if (!emp) return;
+  if (typeof XLSX === "undefined") { $("exportar").textContent = "Sem internet para exportar"; return; }
+  const { cab, linhas } = dadosTabela(emp, listaPeriodos(emp));
+  const digitado = $("ticker").value.trim().toUpperCase();
+  const tk = DADOS.tickers[digitado] === estado.cvm ? digitado : (emp.tickers[0] || "CVM" + estado.cvm);
+  const freq = estado.freq === "tri" ? "trimestral" : "anual";
+  const titulo = `${emp.nome} (${tk}) · consolidado · ${freq} · ${estado.de}–${estado.ate}`;
+  const aoa = [[titulo], [`Fonte: CVM – Dados Abertos (DFP/ITR); cotações: Yahoo Finance. Base gerada em ${DADOS.gerado_em}.`], [], cab,
+    ...linhas.map(l => l.vals)];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const fmtNumXl = estado.unidade === "bi" ? "#,##0.00" : estado.unidade === "mi" ? "#,##0.0" : "#,##0";
+  linhas.forEach((l, r) => l.vals.forEach((v, c) => {
+    const ref = XLSX.utils.encode_cell({ r: r + 4, c });
+    if (!ws[ref] || v == null) return;
+    const t = l.tipos[c];
+    if (t === "num") ws[ref].z = fmtNumXl;
+    else if (t === "pct" || t === "var") ws[ref].z = "0.0%";
+  }));
+  ws["!cols"] = cab.map((c, i) => ({ wch: i === 0 ? 34 : Math.max(12, String(c).length + 2) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Dados");
+  const ind = estado.indicador === TODOS ? "todos" : estado.indicador;
+  XLSX.writeFile(wb, `${tk}_${ind}_${freq}_${estado.de}-${estado.ate}.xlsx`);
+}
+
+function escalaBonita(min, max, incluirZero = true, nTicks = 5) {
+  if (incluirZero) { min = Math.min(0, min); max = Math.max(0, max); }
+  if (min === max) { min -= 1; max += 1; }
+  const bruto = (max - min) / nTicks;
+  const pot = Math.pow(10, Math.floor(Math.log10(bruto)));
+  const passo = [1, 2, 2.5, 5, 10].map(m => m * pot).find(s => s >= bruto);
+  const lo = Math.floor(min / passo) * passo, hi = Math.ceil(max / passo) * passo;
+  const ticks = [];
+  for (let v = lo; v <= hi + passo / 2; v += passo) ticks.push(Math.round(v / passo) * passo);
+  return { lo, hi, ticks };
+}
+
+function renderGrafico(emp, per) {
+  const k = estado.indicador, mk = estado.margem;
+  const corpo = $("corpo");
+  const pontos = per.map(p => ({
+    ...p, v: p.d?.[k] ?? null, ant: p.comp?.[k] ?? null,
+    m: mk ? margem(p.d, mk) : null,
+  }));
+  const validos = pontos.filter(p => p.v != null);
+  if (!validos.length) { corpo.innerHTML = `<div class="erro">Sem dados para este indicador no período.</div>`; return; }
+
+  const vals = validos.map(p => naUnidade(p.v));
+  const { lo, hi, ticks } = escalaBonita(Math.min(...vals), Math.max(...vals));
+
+  // painel 1: barras (R$) · painel 2 (opcional): linha da margem (%), mesmo eixo X
+  const comMargem = !!mk && pontos.some(p => p.m != null);
+  // desenha na largura real do contêiner (texto legível no celular)
+  const W = Math.round(Math.min(900, Math.max(300, corpo.clientWidth || 900)));
+  const estreito = W < 600;
+  const mL = estreito ? 46 : 70, mR = estreito ? 6 : 12, mT = 24;
+  const ph = estreito ? (comMargem ? 190 : 230) : (comMargem ? 240 : 290);
+  const topo2 = mT + ph + 46, ph2 = estreito ? 110 : 130;
+  const baseX = comMargem ? topo2 + ph2 : mT + ph;
+  const H = baseX + 40;
+  const pw = W - mL - mR;
+  const y = v => mT + (hi - v) / (hi - lo) * ph;
+  const banda = pw / pontos.length;
+  const bw = Math.min(56, banda * 0.62);
+  const x0 = i => mL + banda * i + (banda - bw) / 2;
+  const xc = i => x0(i) + bw / 2;
+  const r = Math.min(4, bw / 2);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${INDICADORES[k]} por ${estado.freq === "tri" ? "trimestre" : "ano"}">`;
+  for (const t of ticks) {
+    svg += `<line x1="${mL}" x2="${W - mR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${mL - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--text-3)">${fmtEixo.format(t)}</text>`;
+  }
+  svg += `<line x1="${mL}" x2="${W - mR}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
+
+  const ultimo = validos[validos.length - 1];
+  // rótulos do eixo X: anos, "LTM 2T26" ou trimestres (só 1T quando não cabe todos)
+  const rotuloX = (p, i) => {
+    const yb = baseX + 20, x = xc(i);
+    const txt = (t, dy = 0, cor = "var(--text-2)") =>
+      `<text x="${x}" y="${yb + dy}" text-anchor="middle" font-size="11" fill="${cor}">${t}</text>`;
+    if (p.ltm) return txt("LTM", 0, "var(--text)") + txt(rotTri(p.cot || emp.ltm.ref), 13);
+    if (estado.freq !== "tri") return txt(banda < 36 ? "’" + String(p.ano).slice(2) : p.ano);
+    if (banda >= 34) return txt(p.rot);
+    if (p.q !== 1) return "";
+    return txt(banda * 4 >= 40 ? p.ano : "’" + String(p.ano).slice(2));
+  };
+  pontos.forEach((p, i) => {
+    svg += rotuloX(p, i);
+    if (p.ltm) {
+      // separa o LTM da série anual
+      const xs = mL + banda * i;
+      svg += `<line x1="${xs}" x2="${xs}" y1="${mT}" y2="${baseX}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    }
+    if (p.v == null) return;
+    const x = x0(i), mv = naUnidade(p.v);
+    const yv = y(mv), yz = y(0);
+    const top = Math.min(yv, yz), h = Math.max(Math.abs(yz - yv), 1);
+    const rr = Math.min(r, h);
+    const d = mv >= 0
+      ? `M${x},${yz} V${top + rr} Q${x},${top} ${x + rr},${top} H${x + bw - rr} Q${x + bw},${top} ${x + bw},${top + rr} V${yz} Z`
+      : `M${x},${yz} V${top + h - rr} Q${x},${top + h} ${x + rr},${top + h} H${x + bw - rr} Q${x + bw},${top + h} ${x + bw},${top + h - rr} V${yz} Z`;
+    // LTM em tom mais claro com contorno, para não confundir com um ano fechado
+    const estiloLtm = p.ltm ? ` fill-opacity="0.45" stroke="var(--series)" stroke-width="1.5"` : "";
+    svg += `<path class="barra" data-i="${i}" d="${d}" fill="var(--series)"${estiloLtm}/>`;
+    if (p === ultimo) {
+      const ly = mv >= 0 ? top - 6 : top + h + 14;
+      svg += `<text x="${xc(i)}" y="${ly}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">${fmtValor(p.v)}</text>`;
+    }
+  });
+
+  if (comMargem) {
+    const ms = pontos.filter(p => p.m != null).map(p => p.m);
+    const mMin = Math.min(...ms), mMax = Math.max(...ms);
+    const pad = Math.max((mMax - mMin) * 0.15, 1);
+    const e2 = escalaBonita(mMin < 0 ? mMin - pad : 0, mMax > 0 ? mMax + pad : 0, true, 4);
+    const y2 = v => topo2 + (e2.hi - v) / (e2.hi - e2.lo) * ph2;
+
+    svg += `<text x="${mL}" y="${topo2 - 18}" font-size="13" font-weight="600" fill="var(--text)">${MARGENS[mk].nome}${estreito ? "" : ` <tspan font-weight="400" fill="var(--text-3)">· ${MARGENS[mk].rotulo || "% da receita líquida"}</tspan>`}</text>`;
+    for (const t of e2.ticks) {
+      svg += `<line x1="${mL}" x2="${W - mR}" y1="${y2(t)}" y2="${y2(t)}" stroke="${t === 0 ? "var(--text-3)" : "var(--grid)"}" stroke-width="1"/>`;
+      svg += `<text x="${mL - 8}" y="${y2(t) + 4}" text-anchor="end" font-size="11" fill="var(--text-3)">${fmt0.format(t)}%</text>`;
+    }
+    // linha com quebra onde faltar dado
+    let caminho = "", aberto = false;
+    pontos.forEach((p, i) => {
+      if (p.m == null) { aberto = false; return; }
+      caminho += `${aberto ? "L" : "M"}${xc(i)},${y2(p.m)} `;
+      aberto = true;
+    });
+    svg += `<path d="${caminho}" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round"/>`;
+    let ultimoM = null;
+    pontos.forEach((p, i) => {
+      if (p.m == null) return;
+      ultimoM = i;
+      svg += `<circle class="ponto" data-i="${i}" cx="${xc(i)}" cy="${y2(p.m)}" r="4" fill="var(--series-2)" stroke="var(--surface)" stroke-width="2"/>`;
+    });
+    if (ultimoM != null) {
+      svg += `<text x="${xc(ultimoM)}" y="${y2(pontos[ultimoM].m) - 10}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)">${fmtPct(pontos[ultimoM].m)}</text>`;
+    }
+    svg += `<line id="guia" x1="0" x2="0" y1="${topo2}" y2="${topo2 + ph2}" stroke="var(--text-3)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
+  }
+
+  // alvos de hover: coluna inteira (barra + margem)
+  pontos.forEach((p, i) => {
+    svg += `<rect class="alvo" data-i="${i}" x="${mL + banda * i}" y="${mT}" width="${banda}" height="${baseX - mT}" fill="transparent"/>`;
+  });
+  svg += `</svg><div class="tooltip" id="tip"></div>`;
+  corpo.innerHTML = `<div id="grafico">${svg}</div>`;
+
+  const tip = $("tip"), svgEl = $("grafico").querySelector("svg");
+  const guia = svgEl.querySelector("#guia");
+  const limpar = () => {
+    tip.style.display = "none";
+    svgEl.querySelectorAll(".barra").forEach(b => b.setAttribute("fill", "var(--series)"));
+    svgEl.querySelectorAll(".ponto").forEach(c => c.setAttribute("r", "4"));
+    if (guia) guia.setAttribute("visibility", "hidden");
+  };
+  svgEl.querySelectorAll(".alvo").forEach(alvo => {
+    const mostrar = () => {
+      limpar();
+      const i = +alvo.dataset.i, p = pontos[i];
+      const escala = svgEl.getBoundingClientRect().width / W;
+      let html = `<b>${p.rot}: ${p.v == null ? "sem dado" : "R$ " + fmtValor(p.v) + " " + U().curto}</b>`;
+      if (p.ltm) html += `<br><span class="sub">12 meses até ${p.fim.split("-").reverse().join("/")}</span>`;
+      if (p.v != null) html += `<br><span class="sub">vs ${p.compRot}: ${fmtVar(variacao(p.v, p.ant))}</span>`;
+      if (comMargem) html += `<br><span class="sub">${MARGENS[mk].nome}: ${fmtPct(p.m)}</span>`;
+      tip.innerHTML = html;
+      const topoBarra = p.v == null ? mT + ph / 2 : Math.min(y(naUnidade(p.v)), y(0));
+      tip.style.left = xc(i) * escala + "px";
+      tip.style.top = (topoBarra - 10) * escala + "px";
+      tip.style.display = "block";
+      const b = svgEl.querySelector(`.barra[data-i="${i}"]`);
+      if (b) b.setAttribute("fill", "var(--series-hover)");
+      const c = svgEl.querySelector(`.ponto[data-i="${i}"]`);
+      if (c) c.setAttribute("r", "6");
+      if (guia) { guia.setAttribute("x1", xc(i)); guia.setAttribute("x2", xc(i)); guia.setAttribute("visibility", "visible"); }
+    };
+    alvo.addEventListener("mouseenter", mostrar);
+    alvo.addEventListener("click", mostrar); // toque no celular
+    alvo.addEventListener("mouseleave", limpar);
+  });
+}
+
+// ---------- cotação diária (estilo Google Finance) ----------
+const PERIODOS_COT = [
+  ["ind", "De–Até"], ["1M", "1M"], ["6M", "6M"], ["YTD", "YTD"], ["1A", "1A"], ["5A", "5A"], ["MAX", "Máx"],
+];
+const fmtData = d => d.toISOString().slice(0, 10).split("-").reverse().join("/");
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const seriesCache = {};
+
+// carrega cotacoes/<TICKER>.js sob demanda (funciona abrindo o arquivo direto e no Artifact)
+function carregarSerie(tk, pronto) {
+  if (seriesCache[tk]) return pronto(seriesCache[tk]);
+  const decodificar = () => {
+    const s = window.COT[tk];
+    const t = [];
+    let ms = Date.parse(s.t0 + "T00:00:00Z");
+    for (const dd of s.d) { ms += dd * 864e5; t.push(ms); }
+    return (seriesCache[tk] = { t, c: s.c, a: s.a });
+  };
+  if (window.COT && window.COT[tk]) return pronto(decodificar());
+  const el = document.createElement("script");
+  el.src = `cotacoes/${tk}.js`;
+  el.onload = () => pronto(window.COT && window.COT[tk] ? decodificar() : null);
+  el.onerror = () => pronto(null);
+  document.head.appendChild(el);
+}
+
+function renderCotacao(emp) {
+  const caixa = $("cotacao");
+  const tk = emp && estado.acao && estado.modo === "grafico" ? tickerCotacao(emp) : null;
+  if (!tk) { caixa.hidden = true; caixa.innerHTML = ""; return; }
+  caixa.hidden = false;
+  caixa.innerHTML = `<div class="erro">Carregando cotações de ${tk}…</div>`;
+  const pedido = (renderCotacao.pedido = (renderCotacao.pedido || 0) + 1);
+  carregarSerie(tk, serie => {
+    if (pedido !== renderCotacao.pedido) return; // o usuário já trocou de ticker
+    if (!serie) { caixa.innerHTML = `<div class="erro">Arquivo de cotações de ${tk} não encontrado. Rode <code>python atualizar_dados.py</code>.</div>`; return; }
+    desenharCotacao(tk, serie);
+  });
+}
+
+function intervaloCot(serie) {
+  const ultimo = serie.t[serie.t.length - 1];
+  const d = new Date(ultimo);
+  const menos = (anos, meses) => Date.UTC(d.getUTCFullYear() - anos, d.getUTCMonth() - meses, d.getUTCDate());
+  switch (estado.periodoCot) {
+    case "1M":  return [menos(0, 1), ultimo];
+    case "6M":  return [menos(0, 6), ultimo];
+    case "YTD": return [Date.UTC(d.getUTCFullYear(), 0, 1), ultimo];
+    case "1A":  return [menos(1, 0), ultimo];
+    case "5A":  return [menos(5, 0), ultimo];
+    case "MAX": return [serie.t[0], ultimo];
+    default:    return [Date.UTC(estado.de, 0, 1), Math.min(Date.UTC(estado.ate, 11, 31), ultimo)];
+  }
+}
+
+function ticksTempo(ini, fim, maxTicks) {
+  const meses = (fim - ini) / (30.44 * 864e5);
+  const ticks = [];
+  if (meses < 2) {
+    const passo = [7, 14].find(p => (fim - ini) / (p * 864e5) <= maxTicks) || 14;
+    for (let t = ini; t <= fim; t += passo * 864e5) {
+      const d = new Date(t);
+      ticks.push([t, `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`]);
+    }
+    return ticks;
+  }
+  const passo = [1, 2, 3, 6, 12, 24, 36, 60].find(p => meses / p <= maxTicks) || 60;
+  const d0 = new Date(ini);
+  let y = d0.getUTCFullYear(), m = d0.getUTCMonth() + 1;
+  if (passo >= 12) { y += 1; m = 0; } // anos: começa no próximo 1º de janeiro
+  else m = Math.ceil(m / passo) * passo;
+  for (;;) {
+    const t = Date.UTC(y, m, 1);
+    if (t > fim) break;
+    if (t >= ini) {
+      const dd = new Date(t);
+      const rot = passo >= 12 ? String(dd.getUTCFullYear()) : `${MESES[dd.getUTCMonth()]}/${String(dd.getUTCFullYear()).slice(2)}`;
+      ticks.push([t, rot]);
+    }
+    m += passo;
+    while (m >= 12) { m -= 12; y += 1; }
+  }
+  return ticks;
+}
+
+function desenharCotacao(tk, serie) {
+  const caixa = $("cotacao");
+  const total = estado.acao === "total";
+  const valores = total ? serie.a : serie.c;
+  const [ini, fim] = intervaloCot(serie);
+
+  // pontos do período + fechamento anterior como base (igual à variação anual)
+  let i0 = serie.t.findIndex(t => t >= ini);
+  let i1 = serie.t.length - 1;
+  while (i1 >= 0 && serie.t[i1] > fim) i1--;
+  if (i0 < 0 || i1 < i0) { caixa.innerHTML = `<div class="erro">Sem cotações de ${tk} neste período.</div>`; return; }
+  const base = i0 > 0 ? valores[i0 - 1] : valores[i0];
+  const ts = serie.t.slice(i0, i1 + 1), vs = valores.slice(i0, i1 + 1);
+  const ultimo = vs[vs.length - 1];
+  const varTotal = (ultimo / base - 1) * 100;
+  const sobe = varTotal >= 0;
+
+  const botoes = PERIODOS_COT.map(([k, r]) =>
+    `<button data-p="${k}" class="${estado.periodoCot === k ? "ativo" : ""}">${k === "ind" ? (window.innerWidth < 600 ? `’${String(estado.de).slice(2)}–’${String(estado.ate).slice(2)}` : `${estado.de}–${estado.ate}`) : r}</button>`).join("");
+  const rotulo = total ? "Retorno total · preço ajustado por dividendos e JCP" : "Variação do preço";
+  const deltaR = total ? "" : ` (${sobe ? "+" : "−"}R$ ${fmt2.format(Math.abs(ultimo - base))})`;
+  caixa.innerHTML = `
+    <div class="cot-cab">
+      <div>
+        <div class="cot-tit">Cotação ${tk} <span class="unid">· ${rotulo}</span></div>
+        <div class="cot-preco">R$ ${fmt2.format(ultimo)}
+          <span class="delta ${sobe ? "sobe" : "cai"}">${sobe ? "▲" : "▼"} ${fmtVar(varTotal)}${deltaR}</span>
+        </div>
+        <div class="cot-per">${fmtData(new Date(ts[0]))} a ${fmtData(new Date(ts[ts.length - 1]))} · base: fechamento anterior R$ ${fmt2.format(base)}</div>
+      </div>
+      <div class="segmentado periodos" id="periodoCot">${botoes}</div>
+    </div>
+    <div id="cotGraf"></div>`;
+  caixa.querySelectorAll("#periodoCot button").forEach(b => b.addEventListener("click", () => {
+    estado.periodoCot = b.dataset.p; guardar(); desenharCotacao(tk, serie);
+  }));
+
+  const cont = $("cotGraf");
+  const W = Math.round(Math.min(900, Math.max(300, cont.clientWidth || 900)));
+  const estreito = W < 600;
+  const mL = estreito ? 46 : 60, mR = estreito ? 6 : 12, mT = 14, ph = estreito ? 200 : 260, H = mT + ph + 30;
+  const pw = W - mL - mR;
+  const vmin = Math.min(base, ...vs), vmax = Math.max(base, ...vs);
+  const pad = (vmax - vmin) * 0.06 || vmax * 0.02 || 1;
+  // preço não parte do zero (como no Google Finance), senão a variação some
+  const esc = escalaBonita(Math.max(0, vmin - pad), vmax + pad, false, 4);
+  if (esc.lo < 0) { esc.lo = 0; esc.ticks = esc.ticks.filter(t => t >= 0); }
+  const x = t => mL + (ts.length > 1 ? (t - ts[0]) / (ts[ts.length - 1] - ts[0]) : 0.5) * pw;
+  const y = v => mT + (esc.hi - v) / (esc.hi - esc.lo) * ph;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cotação diária de ${tk}">`;
+  for (const t of esc.ticks) {
+    svg += `<line x1="${mL}" x2="${W - mR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${mL - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--text-3)">${fmtEixo.format(t)}</text>`;
+  }
+  for (const [t, rot] of ticksTempo(ts[0], ts[ts.length - 1], Math.max(2, Math.floor(pw / 75)))) {
+    svg += `<text x="${x(t)}" y="${mT + ph + 20}" text-anchor="middle" font-size="11" fill="var(--text-2)">${rot}</text>`;
+  }
+  // linha de base tracejada (fechamento anterior)
+  svg += `<line x1="${mL}" x2="${W - mR}" y1="${y(base)}" y2="${y(base)}" stroke="var(--text-3)" stroke-width="1" stroke-dasharray="2 4"/>`;
+
+  // reduz pontos só para desenhar (no máximo ~2 por pixel)
+  const passo = Math.max(1, Math.floor(ts.length / (pw * 2)));
+  let caminho = "";
+  for (let i = 0; i < ts.length; i += passo) caminho += `${caminho ? "L" : "M"}${x(ts[i]).toFixed(1)},${y(vs[i]).toFixed(1)}`;
+  caminho += `L${x(ts[ts.length - 1]).toFixed(1)},${y(ultimo).toFixed(1)}`;
+  const cor = sobe ? "var(--sobe)" : "var(--cai)";
+  svg += `<path d="${caminho}L${x(ts[ts.length - 1])},${mT + ph}L${x(ts[0])},${mT + ph}Z" fill="${cor}" opacity="0.10"/>`;
+  svg += `<path d="${caminho}" fill="none" stroke="${cor}" stroke-width="2" stroke-linejoin="round"/>`;
+  svg += `<line id="cotGuia" y1="${mT}" y2="${mT + ph}" stroke="var(--text-3)" stroke-width="1" visibility="hidden"/>`;
+  svg += `<circle id="cotPonto" r="5" fill="${cor}" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+  svg += `<rect id="cotAlvo" x="${mL}" y="${mT}" width="${pw}" height="${ph}" fill="transparent"/>`;
+  svg += `</svg><div class="tooltip" id="cotTip"></div>`;
+  cont.innerHTML = `<div style="position:relative">${svg}</div>`;
+
+  const svgEl = cont.querySelector("svg"), tip = $("cotTip"), guia = $("cotGuia"), ponto = $("cotPonto");
+  const mover = ev => {
+    const caixaSvg = svgEl.getBoundingClientRect();
+    const escala = caixaSvg.width / W;
+    const px = (ev.clientX - caixaSvg.left) / escala;
+    const alvoT = ts[0] + (px - mL) / pw * (ts[ts.length - 1] - ts[0]);
+    // busca binária do pregão mais próximo
+    let lo = 0, hi = ts.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (ts[m] < alvoT) lo = m; else hi = m; }
+    const i = Math.abs(ts[lo] - alvoT) <= Math.abs(ts[hi] - alvoT) ? lo : hi;
+    const cx = x(ts[i]), cy = y(vs[i]);
+    guia.setAttribute("x1", cx); guia.setAttribute("x2", cx); guia.setAttribute("visibility", "visible");
+    ponto.setAttribute("cx", cx); ponto.setAttribute("cy", cy); ponto.setAttribute("visibility", "visible");
+    tip.innerHTML = `<b>R$ ${fmt2.format(vs[i])}</b> <span class="sub">${fmtVar((vs[i] / base - 1) * 100)}</span><br><span class="sub">${fmtData(new Date(ts[i]))}</span>`;
+    tip.style.left = Math.min(Math.max(cx * escala, 60), caixaSvg.width - 60) + "px";
+    tip.style.top = (mT + 4) * escala + "px";
+    tip.style.transform = "translate(-50%, 0)";
+    tip.style.display = "block";
+  };
+  const sair = () => {
+    tip.style.display = "none";
+    guia.setAttribute("visibility", "hidden"); ponto.setAttribute("visibility", "hidden");
+  };
+  const alvo = $("cotAlvo");
+  alvo.addEventListener("pointermove", mover);
+  alvo.addEventListener("pointerdown", mover);
+  alvo.addEventListener("pointerleave", sair);
+}
+
+// ---------- eventos ----------
+function selecionarTicker() {
+  const cvm = resolverEmpresa($("ticker").value);
+  estado.cvm = cvm || "";
+  const digitado = $("ticker").value.trim().toUpperCase().split(/\s+/)[0];
+  estado.ticker = DADOS.tickers[digitado] === cvm ? digitado : null;
+  if (cvm) { estado.de = null; estado.ate = null; }
+  montarAnos();
+  render();
+}
+
+function iniciar() {
+  if (typeof DADOS === "undefined") {
+    $("resultado").innerHTML = `<div class="erro">Arquivo <code>dados.js</code> não encontrado. Rode <code>python atualizar_dados.py</code> nesta pasta.</div>`;
+    return;
+  }
+  $("rodape").innerHTML = `Fonte: CVM – Dados Abertos (DFP e ITR, demonstrações consolidadas); cotações: Yahoo Finance. Base gerada em ${DADOS.gerado_em}. ` +
+    `Para atualizar: <code>python atualizar_dados.py</code>`;
+  montarDatalist();
+
+  const salvo = carregarSalvo();
+  Object.assign(estado, {
+    indicador: salvo.indicador || "receita", modo: salvo.modo || "grafico",
+    margem: MARGENS[salvo.margem] ? salvo.margem : "",
+    unidade: UNIDADES[salvo.unidade] ? salvo.unidade : "mi",
+    acao: ACOES[salvo.acao] ? salvo.acao : "",
+    freq: salvo.freq === "tri" ? "tri" : "anual",
+    periodoCot: PERIODOS_COT.some(([k]) => k === salvo.periodoCot) ? salvo.periodoCot : "ind",
+  });
+  $("acao").value = estado.acao;
+  $("freq").value = estado.freq;
+  $("unidade").value = estado.unidade;
+  document.querySelectorAll("#modo button").forEach(b => b.classList.toggle("ativo", b.dataset.modo === estado.modo));
+  montarIndicadores();
+  $("margem").innerHTML = `<option value="">Nenhuma</option>` +
+    Object.entries(MARGENS).map(([k, m]) => `<option value="${k}">${m.nome}</option>`).join("");
+  $("margem").value = estado.margem;
+
+  if (salvo.cvm && DADOS.empresas[salvo.cvm]) {
+    estado.cvm = salvo.cvm; estado.de = salvo.de; estado.ate = salvo.ate;
+    estado.ticker = salvo.ticker && DADOS.tickers[salvo.ticker] === salvo.cvm ? salvo.ticker : null;
+    $("ticker").value = estado.ticker || DADOS.empresas[salvo.cvm].tickers[0] || "";
+  }
+  montarAnos();
+  render();
+
+  $("ticker").addEventListener("change", selecionarTicker);
+  $("ticker").addEventListener("keydown", e => { if (e.key === "Enter") selecionarTicker(); });
+  $("indicador").addEventListener("change", e => { estado.indicador = e.target.value; render(); });
+  $("margem").addEventListener("change", e => { estado.margem = e.target.value; render(); });
+  $("unidade").addEventListener("change", e => { estado.unidade = e.target.value; render(); });
+  $("acao").addEventListener("change", e => { estado.acao = e.target.value; render(); });
+  $("freq").addEventListener("change", e => { estado.freq = e.target.value; render(); });
+  $("exportar").addEventListener("click", exportarExcel);
+  $("de").addEventListener("change", e => {
+    estado.de = +e.target.value;
+    if (estado.de > estado.ate) { estado.ate = estado.de; $("ate").value = estado.ate; }
+    render();
+  });
+  $("ate").addEventListener("change", e => {
+    estado.ate = +e.target.value;
+    if (estado.ate < estado.de) { estado.de = estado.ate; $("de").value = estado.de; }
+    render();
+  });
+  document.querySelectorAll("#modo button").forEach(b => b.addEventListener("click", () => {
+    estado.modo = b.dataset.modo;
+    document.querySelectorAll("#modo button").forEach(x => x.classList.toggle("ativo", x === b));
+    montarIndicadores();
+    render();
+  }));
+}
+iniciar();
+
+// redesenha o gráfico quando a largura muda (ex.: girar o celular)
+let larguraAnterior = window.innerWidth, timerResize;
+window.addEventListener("resize", () => {
+  clearTimeout(timerResize);
+  timerResize = setTimeout(() => {
+    if (window.innerWidth !== larguraAnterior && estado.modo === "grafico") { larguraAnterior = window.innerWidth; render(); }
+  }, 150);
+});
+</script>
+</body>
+</html>
